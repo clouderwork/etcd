@@ -44,5 +44,3 @@ require (
 	gopkg.in/yaml.v2 v2.2.8
 	sigs.k8s.io/yaml v1.2.0
 )
-
-replace go.etcd.io/bbolt => github.com/coreos/bbolt v1.3.5
