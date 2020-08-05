@@ -15,7 +15,6 @@
 package picker
 
 import (
-	"context"
 	"sync"
 
 	"go.uber.org/zap"
@@ -51,13 +50,55 @@ type rrBalanced struct {
 
 func (rb *rrBalanced) String() string { return rb.p.String() }
 
-// Pick is called for every client request.
-func (rb *rrBalanced) Pick(ctx context.Context, opts balancer.PickInfo) (balancer.SubConn, func(balancer.DoneInfo), error) {
+// // Pick is called for every client request.
+// func (rb *rrBalanced) Pick(ctx context.Context, opts balancer.PickInfo) (balancer.SubConn, func(balancer.DoneInfo), error) {
+// 	rb.mu.RLock()
+// 	n := len(rb.scs)
+// 	rb.mu.RUnlock()
+// 	if n == 0 {
+// 		return nil, nil, balancer.ErrNoSubConnAvailable
+// 	}
+
+// 	rb.mu.Lock()
+// 	cur := rb.next
+// 	sc := rb.scs[cur]
+// 	picked := rb.scToAddr[sc].Addr
+// 	rb.next = (rb.next + 1) % len(rb.scs)
+// 	rb.mu.Unlock()
+
+// 	rb.lg.Debug(
+// 		"picked",
+// 		zap.String("picker", rb.p.String()),
+// 		zap.String("address", picked),
+// 		zap.Int("subconn-index", cur),
+// 		zap.Int("subconn-size", n),
+// 	)
+
+// 	doneFunc := func(info balancer.DoneInfo) {
+// 		// TODO: error handling?
+// 		fss := []zapcore.Field{
+// 			zap.Error(info.Err),
+// 			zap.String("picker", rb.p.String()),
+// 			zap.String("address", picked),
+// 			zap.Bool("success", info.Err == nil),
+// 			zap.Bool("bytes-sent", info.BytesSent),
+// 			zap.Bool("bytes-received", info.BytesReceived),
+// 		}
+// 		if info.Err == nil {
+// 			rb.lg.Debug("balancer done", fss...)
+// 		} else {
+// 			rb.lg.Warn("balancer failed", fss...)
+// 		}
+// 	}
+// 	return sc, doneFunc, nil
+// }
+
+func (rb *rrBalanced) Pick(opts balancer.PickInfo) (balancer.PickResult, error) {
 	rb.mu.RLock()
 	n := len(rb.scs)
 	rb.mu.RUnlock()
 	if n == 0 {
-		return nil, nil, balancer.ErrNoSubConnAvailable
+		return balancer.PickResult{}, balancer.ErrNoSubConnAvailable
 	}
 
 	rb.mu.Lock()
@@ -91,5 +132,8 @@ func (rb *rrBalanced) Pick(ctx context.Context, opts balancer.PickInfo) (balance
 			rb.lg.Warn("balancer failed", fss...)
 		}
 	}
-	return sc, doneFunc, nil
+	return balancer.PickResult{
+		SubConn: sc,
+		Done:    doneFunc,
+	}, nil
 }

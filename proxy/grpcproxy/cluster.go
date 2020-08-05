@@ -26,9 +26,9 @@ import (
 	"go.etcd.io/etcd/v3/etcdserver/api/v3rpc/rpctypes"
 	pb "go.etcd.io/etcd/v3/etcdserver/etcdserverpb"
 
+	gnaming "go.etcd.io/etcd/v3/pkg/naming"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
-	gnaming "google.golang.org/grpc/naming"
 )
 
 // allow maximum 1 retry per second

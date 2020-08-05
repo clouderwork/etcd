@@ -193,6 +193,14 @@ func (bb *baseBalancer) HandleResolvedAddrs(addrs []resolver.Address, err error)
 	}
 }
 
+func (bb *baseBalancer) UpdateClientConnState(balancer.ClientConnState) error {
+	return nil
+}
+
+func (bb *baseBalancer) UpdateSubConnState(sc balancer.SubConn, s balancer.SubConnState) {
+	bb.HandleSubConnStateChange(sc, s.ConnectivityState)
+}
+
 // HandleSubConnStateChange implements "grpc/balancer.Balancer" interface.
 func (bb *baseBalancer) HandleSubConnStateChange(sc balancer.SubConn, s grpcconnectivity.State) {
 	bb.mu.Lock()
@@ -247,7 +255,10 @@ func (bb *baseBalancer) HandleSubConnStateChange(sc balancer.SubConn, s grpcconn
 		bb.updatePicker()
 	}
 
-	bb.currentConn.UpdateBalancerState(bb.connectivityRecorder.GetCurrentState(), bb.picker)
+	bb.currentConn.UpdateState(balancer.State{
+		ConnectivityState: bb.connectivityRecorder.GetCurrentState(),
+		Picker:            bb.picker,
+	})
 }
 
 func (bb *baseBalancer) updatePicker() {
@@ -290,4 +301,7 @@ func (bb *baseBalancer) updatePicker() {
 // and it doesn't need to call RemoveSubConn for the SubConns.
 func (bb *baseBalancer) Close() {
 	// TODO
+}
+
+func (bb *baseBalancer) ResolverError(error) {
 }
